@@ -1,4 +1,4 @@
-#include "LD_NFClib.h"
+﻿#include "LD_NFClib.h"
 
 LD_NFC::LD_NFC(Stream *serial, Stream *serialDebug)
 {
