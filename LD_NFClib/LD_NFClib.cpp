@@ -7,6 +7,7 @@ LD_NFC::LD_NFC(Stream *serial)
 	this->isDebug = false;
 }
 
+
 LD_NFC::LD_NFC(Stream *serial, Stream *serialDebug)
 {
 	this->serial=serial;
@@ -15,18 +16,18 @@ LD_NFC::LD_NFC(Stream *serial, Stream *serialDebug)
 }
 
 
-void LD_NFC::wakeUp(){
+void LD_NFC::wakeUp(){//wake up NFC module
 	const unsigned char wake[24]={
 	0x55, 0x55, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x03, 0xfd, 0xd4, 0x14, 0x01, 0x17, 0x00};//wake up NFC module
-	for(int i=0;i<24;i++) //send command
-	{
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x03, 0xfd, 0xd4, \
+	0x14, 0x01, 0x17, 0x00
+	};
+	for(int i=0;i<24;i++) {//send command
 		this->serial->write(wake[i]);
 	}
 	delay(10);
 	readReceive(15);
-	if (this->isDebug)
-	{
+	if (this->isDebug){
 		for(int i=0;i<15;i++)  {this->serialDebug->print(receive_ACK[i],HEX);this->serialDebug->print(" ");}
 		this->serialDebug->println();
 	}
@@ -53,12 +54,13 @@ void LD_NFC::scan(){
 		for(int i=0;i<11;i++)  this->serial->write(cmdUID[i]);
 		delay(10);
 	} while(readAck()!=0x01);
-	while(Serial1.available())
-		{this->serialDebug->print(this->serial->read(),HEX); this->serialDebug->print(" ");}
-	//readReceive(19);
-	//for(int i=0;i<19;i++)  {this->serialDebug->print(this->receive_ACK[i],HEX); this->serialDebug->print(" ");}
+	while(Serial1.available()){
+		this->serialDebug->print(this->serial->read(),HEX); 
+		this->serialDebug->print(" ");
+	}
 	delay(10); 
 }
+
 
 int LD_NFC::passWordCheck(int block,unsigned char id[],unsigned char st[]){
 	//---------head-------  card 1  check blocknumber  password               UID D1 AA 40 EA      DCS+POST
@@ -82,17 +84,13 @@ int LD_NFC::passWordCheck(int block,unsigned char id[],unsigned char st[]){
 		this->serialDebug->println();
 	}
 	
-	
 	do{
-		//this->serial->flush();
-		while(Serial1.available())   char xx=Serial1.read();//clear the serial data
-		for (int i=0;i<22;i++)  this->serial->write(cmdPassWord[i]);
+		while(Serial1.available()) char xx=Serial1.read();//clear the serial data
+		for (int i=0;i<22;i++) this->serial->write(cmdPassWord[i]);
 		delay(10);
-		this->serialDebug->println("times");
 	} while(readAck()!=0x01);
 	
-	while(this->serial->available())
-	{
+	while(this->serial->available()){
 		this->receive_ACK[count]=this->serial->read();
 		count++;
 	}
@@ -100,8 +98,7 @@ int LD_NFC::passWordCheck(int block,unsigned char id[],unsigned char st[]){
 	//10个数据
 	//readReceive(16);delay(10);
 	
-	if (this->isDebug)
-	{
+	if (this->isDebug){
 		this->serialDebug->println("passWordRes: ");
 		for(int i=0;i<count;i++)  {this->serialDebug->print(this->receive_ACK[i],HEX); this->serialDebug->print(" ");}
 		this->serialDebug->println();
@@ -132,14 +129,12 @@ void LD_NFC::readData(int block)// 读取数据  block---要读取的块
 		delay(10);
 	} while(readAck()!=0x01);
 	
-	while(this->serial->available())
-	{    
+	while(this->serial->available()){    
 		this->receive_ACK[count]=this->serial->read();
 		count++;
 	}
 	
-	if (this->isDebug)
-	{
+	if (this->isDebug){
 		this->serialDebug->println("Read data:   ");
 		for(int i=0;i<count;i++)  {this->serialDebug->print(this->receive_ACK[i],HEX); this->serialDebug->print(" ");}
 		this->serialDebug->println();
@@ -152,9 +147,11 @@ void LD_NFC::readData(int block)// 读取数据  block---要读取的块
 void  LD_NFC::writeData(int block,unsigned char dwic[])//  block：待写入数据的块，dwic[]待写入的数据
 {
 	//00 00 ff 15 EB D4 40 01 A0 06 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F CD 00
-	unsigned char cmdWrite[28]={0x00,0x00,0xff,0x15,0xEB,0xD4,0x40,0x01,0xA0, \
-							  0x06,0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07, \
-							  0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F,0xCD,0x00};
+	unsigned char cmdWrite[28]={
+	0x00,0x00,0xff,0x15,0xEB,0xD4,0x40,0x01,0xA0,0x06, \
+	0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09, \
+	0x0A,0x0B,0x0C,0x0D,0x0E,0x0F,0xCD,0x00
+	};
 	unsigned char sum=0,count=0;
 	cmdWrite[9]=block;
 	for(int i=10;i<26;i++) cmdWrite[i]=dwic[i-10];// 待写入的数据
@@ -193,36 +190,41 @@ unsigned char LD_NFC::readAck()
 	const unsigned char ack[6]={0x00,0x00,0xff,0x00,0xff,0x00};
 	const unsigned char nack[6]={0x00,0x00,0xff,0xff,0x00,0x00};
 	while (this->serial->available()<6);
-	this->serialDebug->println("reading ACK");
+	if (this->isDebug){
+		this->serialDebug->println("reading ACK");
+	}
 	for(int x=0;x<6;x++)
 	{
 		receiveData[x]= this->serial->read();
 		if (receiveData[x]==ack[x])i++;
 		if (receiveData[x]==nack[x])j++;
-		this->serialDebug->print(receiveData[x],HEX);
-		this->serialDebug->print(" ");
+		if (this->isDebug){
+			this->serialDebug->print(receiveData[x],HEX);
+			this->serialDebug->print(" ");
+		}
 	}
-	this->serialDebug->println();
+	if (this->isDebug){
+		this->serialDebug->println();
+	}
 	if (i==6)return 0x01;
 	else if (j==6)return 0x00;
 	else return 0xff;
 }
 
-void LD_NFC::readReceive(int x) //读取x个串口发来的数据
+//读取x个串口发来的数据
+void LD_NFC::readReceive(int x) 
 {
 	unsigned char i;
-	for(i=0;i<x;i++)
-	{
+	for(i=0;i<x;i++){
 		this->receive_ACK[i]= this->serial->read();
 	}
 }
 
 
-char LD_NFC::checkDCS(int x)  //  NFC  S50卡  DCS校验检测子函数
+char LD_NFC::checkDCS(int x)  //NFC S50卡 DCS校验检测子函数
 {
 	unsigned char sum=0,dcs=0;
-	for(int i=0;i<x-2;i++)
-	{
+	for(int i=0;i<x-2;i++){
 		sum+=this->receive_ACK[i];
 	}
 	dcs=0xff-sum&0xff;
