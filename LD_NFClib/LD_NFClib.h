@@ -6,6 +6,7 @@ class LD_NFC
 {
 	public:
 		LD_NFC(Stream *serial, Stream *serialDebug);
+		LD_NFC(Stream *serial);
 		void wakeUp();
 		void scan();
 		int passWordCheck(int block,unsigned char id[],unsigned char st[]);
@@ -13,8 +14,9 @@ class LD_NFC
 		void readData(int block);
 		
 	private: 
-		void readAck(int x);   //  读取x个串口发来的数据
+		unsigned char readAck();
 		char checkDCS(int x);  //  NFC  S50卡  DCS校验检测子函数
+		void readReceive(int x);
 	
 	private:
 		Stream *serial;                                            
